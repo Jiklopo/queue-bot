@@ -12,6 +12,7 @@ class Queue(models.Model):
     cooldown = models.IntegerField(default=10)
     admins_timestamp = models.DateTimeField(default=timezone.now())
     list_timestamp = models.DateTimeField(default=timezone.now())
+    who_timestamp = models.DateTimeField(default=timezone.now())
     message_id = models.IntegerField(default=0)
 
     def is_admin(self, username):

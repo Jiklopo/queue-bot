@@ -1,8 +1,9 @@
 import os
-from datetime import datetime, timedelta
+from datetime import timedelta
 from telebot import TeleBot
 from telebot.types import Message
 from bot.models import Queue
+from django.utils import timezone
 
 TOKEN = os.getenv('TOKEN')
 bot = TeleBot(TOKEN)
@@ -78,7 +79,7 @@ def _check_timestamp(msg, timestamp, cooldown):
         pass
 
     timestamp = timestamp.replace(tzinfo=None)
-    td = datetime.now() - timestamp
+    td = timezone.now() - timestamp
     if td < timedelta(0, cooldown):
         bot.reply_to(msg,
                      f'Please respect others, do not mention people too often. You have to wait for {cooldown} seconds between commands.')
@@ -86,7 +87,8 @@ def _check_timestamp(msg, timestamp, cooldown):
 
 
 def _get_queue_text(q: Queue):
-    status = f'The queue is {"de" if not q.is_active else ""}activated. There are {len(q.users)} user(s) in the queue:\n'
+    status = f'The queue is {"de" if not q.is_active else ""}activated'
+    status += f'. There are {len(q.users)} user(s) in the queue:\n' if len(q.users) > 0 else ' and empty'
     for i, u in enumerate(q.users):
         status += f'{i + 1}. @{u}\n'
     return status
@@ -114,7 +116,7 @@ def status(msg):
     _empty_queue(msg, q)
     new_msg = bot.reply_to(msg, _get_queue_text(q))
     q.update_message_id(new_msg.message_id)
-    q.list_timestamp = datetime.now()
+    q.list_timestamp = timezone.now()
     q.save()
 
 
@@ -127,7 +129,18 @@ def admins(msg):
     for i, admin in enumerate(q.admins):
         reply += f'{i + 1}. @{admin}\n'
     bot.reply_to(msg, reply)
-    q.admins_timestamp = datetime.now()
+    q.admins_timestamp = timezone.now()
+    q.save()
+
+
+@bot.message_handler(commands=['who'])
+def who(msg):
+    _bad_chat(msg)
+    q = _get_queue(msg)
+    _empty_queue(msg, q)
+    _check_timestamp(msg, q.who_timestamp, q.cooldown)
+    bot.reply_to(msg, f'{q.users[0]} is the first.')
+    q.who_timestamp = timezone.now()
     q.save()
 
 
