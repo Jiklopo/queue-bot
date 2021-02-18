@@ -50,3 +50,11 @@ class Queue(models.Model):
             return True
         except ValueError:
             return False
+
+    def update_message_id(self, message_id):
+        try:
+            self.message_id = message_id
+            self.save()
+            return True
+        except ValueError:
+            return False

@@ -81,13 +81,24 @@ def _check_timestamp(msg, timestamp, cooldown):
         raise CooldownException
 
 
+def _get_queue_text(q: Queue):
+    status = f'The queue is {"de" if not q.is_active else ""}activated. There are {len(q.users)} user(s) in the queue:\n'
+    for i, u in enumerate(q.users):
+        status += f'{i + 1}. @{u}\n'
+    return status
+
+
+def _update_message(q: Queue):
+    bot.edit_message_text(_get_queue_text(q), q.chat_id, q.message_id)
+
+
 @bot.message_handler(commands=['help', 'info', 'information', 'start'])
 def help(msg):
     info = 'Hello, I am Queue Bot. I was made to manage queues in group chats. There is only one /queue per chat. Use ' \
            '/enter or /leave to manage your presence in the queue.  Use /admins to view the list of admins for the queue. ' \
            ' Admins can /add to or /remove from the queue. Admins can use /promote or /demote to manage permissions. ' \
            'Admins can also /activate and /deactivate the queue. If the queue is deactivated users cannot enter or leave ' \
-           'the queue by themselves.\n\n If you have any questions ask @Jiklopo. '
+           'the queue by themselves.\n\n report any problems to @Jiklopo. '
     bot.reply_to(msg, info)
 
 
@@ -97,12 +108,9 @@ def status(msg):
     q = _get_queue(msg)
     _check_timestamp(msg, q.list_timestamp, q.cooldown)
     _empty_queue(msg, q)
-
-    reply = f'The queue is {"de" if not q.is_active else ""}activated. There are {len(q.users)} user(s) in the queue:\n'
-    for i, u in enumerate(q.users):
-        reply += f'{i + 1}. @{u}\n'
-
-    bot.reply_to(msg, reply)
+    new_msg = bot.reply_to(msg, _get_queue_text(q))
+    q.update_message_id(new_msg.message_id)
+    _update_message(q)
     q.list_timestamp = datetime.now()
     q.save()
 
@@ -139,6 +147,8 @@ def enter(msg):
         bot.reply_to(msg, f'You are now in the queue! Your position is {len(q.users)}.')
     else:
         bot.reply_to(msg, 'You are already in the queue.')
+    _update_message(q)
+
 
 
 @bot.message_handler(commands=['leave'])
@@ -149,6 +159,7 @@ def leave(msg):
         bot.reply_to(msg, 'You have successfully left the queue')
     else:
         bot.reply_to(msg, 'You are not in the queue.')
+    _update_message(q)
 
 
 @bot.message_handler(commands=['add'])
@@ -166,6 +177,7 @@ def add(msg):
         bot.reply_to(msg, 'These users are already in the queue.')
     else:
         bot.reply_to(msg, f'Some users [{not_added}] have already been present in the queue. Added everyone else.')
+    _update_message(q)
 
 
 @bot.message_handler(commands=['remove'])
@@ -184,6 +196,7 @@ def remove(msg):
         bot.reply_to(msg, 'There are no such user(s) in the queue.')
     else:
         bot.reply_to(msg, f'Some users [{not_removed}] have not been present in the queue. Removed everyone else.')
+    _update_message(q)
 
 
 @bot.message_handler(commands=['pop'])
@@ -195,6 +208,7 @@ def pop(msg):
     del q.users[0]
     q.save()
     bot.reply_to(msg, f'@{username} is now not in the queue.')
+    _update_message(q)
 
 
 @bot.message_handler(commands=['activate'])
@@ -207,6 +221,7 @@ def activate(msg):
         q.is_active = True
         q.save()
         bot.reply_to(msg, 'Successfully activated the queue.')
+    _update_message(q)
 
 
 @bot.message_handler(commands=['deactivate'])
