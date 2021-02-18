@@ -87,7 +87,7 @@ def _check_timestamp(msg, timestamp, cooldown):
 
 def _get_queue_text(q: Queue):
     status = f'The queue is {"de" if not q.is_active else ""}activated'
-    status += f'. There are {len(q.users)} user(s) in the queue:\n' if len(q.users) > 0 else ' and empty'
+    status += f'. There are {len(q.users)} user(s) in the queue:\n' if len(q.users) > 0 else ' and empty.'
     for i, u in enumerate(q.users):
         status += f'{i + 1}. @{u}\n'
     return status
@@ -101,7 +101,8 @@ def _update_message(q: Queue):
 def help(msg):
     info = 'Hello, I am Queue Bot. I was made to manage queues in group chats. There is only one /queue per chat. Use ' \
            '/enter or /leave to manage your presence in the queue.  Use /admins to view the list of admins for the queue. ' \
-           ' Admins can /add to or /remove from the queue. Admins can use /promote or /demote to manage permissions. ' \
+           ' Admins can /add to or /remove from the queue. You can also know /who is first and /where are you in the queue. ' \
+           'Admins can use /promote or /demote to manage permissions. ' \
            'Admins can also /activate and /deactivate the queue. If the queue is deactivated users cannot enter or leave ' \
            'the queue by themselves.\n\n report any problems to @Jiklopo. '
     bot.reply_to(msg, info)
@@ -138,7 +139,7 @@ def who(msg):
     q = _get_queue(msg)
     _empty_queue(msg, q)
     _check_timestamp(msg, q.who_timestamp, q.cooldown)
-    bot.reply_to(msg, f'{q.users[0]} is the first.')
+    bot.reply_to(msg, f'@{q.users[0]} is the first.')
     q.who_timestamp = timezone.now()
     q.save()
 
