@@ -8,15 +8,36 @@ from django.utils import timezone
 TOKEN = os.getenv('TOKEN')
 bot = TeleBot(TOKEN)
 
+INFO_EN = 'Hello, I am Queue Bot. I was made to manage queues in group chats. There is only one /queue per chat. Use ' \
+          '/enter or /leave to manage your presence in the queue. ' \
+          'Use /admins to view the list of admins for the queue. ' \
+          'Admins can /add to or /remove from the queue. ' \
+          'You can also know /who is first and /where are you in the queue. ' \
+          'Admins can use /promote or /demote to manage permissions. ' \
+          'Admins can also /activate and /deactivate the queue. ' \
+          'If the queue is deactivated users cannot enter or leave ' \
+          'the queue by themselves.\n\n ' \
+          'Report any problems to @Jiklopo.'
+
+INFO_RU = 'Я создан, чтобы поддерживать очередь в группе. Для каждого чата отдельная очередь. ' \
+          'Вы можете войти в очередь, используя /enter, но не забудьте выйти с помощью команды /leave.\n\n' \
+          'Также в очереди есть админы, которые могут добавлять людей(/add @username1 @username2...) ' \
+          'или удалять людей(/remove @username1 @username2...), ' \
+          'добавлять админов(/promote @username1 @username2...) и удалять админов(/demote @username1 @username2...), ' \
+          'а также деактивировать(/deactivate) или активировать(/activate) очередь. ' \
+          'В деактивированную очередь нельзя войти, а также из нее нельзя выйти самостоятельно.\n\n' \
+          'Если возникнут какие-либо проблемы, пишите @Jiklopo.'
+
 
 def _get_queue(msg: Message, bypass=True):
+    MESSAGE = 'Queue is deactivated. Only admins can add new people.'
     class QueueDeactivatedException(Exception):
         pass
 
     try:
         q = Queue.objects.get(chat_id=msg.chat.id)
         if not bypass and not q.is_active and not q.is_admin(msg.from_user.username):
-            bot.reply_to(msg, 'Queue is deactivated. Only admins can add new people.')
+            bot.reply_to(msg, MESSAGE)
             raise QueueDeactivatedException
     except Queue.DoesNotExist:
         q = Queue.objects.create(chat_id=msg.chat.id,
@@ -27,21 +48,23 @@ def _get_queue(msg: Message, bypass=True):
 
 
 def _bad_chat(msg):
+    MESSAGE = 'I work only in group chats.'
     class NotGroupException(Exception):
         pass
 
     if msg.chat.type.find('group') == -1:
-        bot.reply_to(msg, 'I work only in group chats.')
+        bot.reply_to(msg, MESSAGE)
         raise NotGroupException
 
 
 def _is_admin(msg):
+    MESSAGE = 'You must have admin permissions for this action.'
     class NoAdminPermissionsException(Exception):
         pass
 
     q = _get_queue(msg)
     if not q.is_admin(msg.from_user.username):
-        bot.reply_to(msg, 'You must have admin permissions for this action.')
+        bot.reply_to(msg, MESSAGE)
         raise NoAdminPermissionsException
     return q
 
@@ -75,13 +98,13 @@ def _empty_queue(msg, q=None):
 
 
 def _check_timestamp(msg, timestamp, cooldown):
+    MESSAGE = f'Please respect others, do not mention people too often. You have to wait for {cooldown} seconds between commands.'
     class CooldownException(Exception):
         pass
 
     td = timezone.now() - timestamp
     if td.total_seconds() < cooldown:
-        bot.reply_to(msg,
-                     f'Please respect others, do not mention people too often. You have to wait for {cooldown} seconds between commands.')
+        bot.reply_to(msg, MESSAGE)
         raise CooldownException
 
 
@@ -98,14 +121,15 @@ def _update_message(q: Queue):
 
 
 @bot.message_handler(commands=['help', 'info', 'information', 'start'])
-def help(msg):
-    info = 'Hello, I am Queue Bot. I was made to manage queues in group chats. There is only one /queue per chat. Use ' \
-           '/enter or /leave to manage your presence in the queue.  Use /admins to view the list of admins for the queue. ' \
-           ' Admins can /add to or /remove from the queue. You can also know /who is first and /where are you in the queue. ' \
-           'Admins can use /promote or /demote to manage permissions. ' \
-           'Admins can also /activate and /deactivate the queue. If the queue is deactivated users cannot enter or leave ' \
-           'the queue by themselves.\n\n report any problems to @Jiklopo. '
-    bot.reply_to(msg, info)
+def help_en(msg):
+    global INFO_EN
+    bot.reply_to(msg, INFO_EN)
+
+
+@bot.message_handler(commands=['help_ru'])
+def help_ru(msg):
+    global INFO_RU
+    bot.reply_to(msg, INFO_RU)
 
 
 @bot.message_handler(commands=['queue', 'status'])
