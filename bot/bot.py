@@ -1,13 +1,14 @@
 import os
 from datetime import datetime, timedelta
 from telebot import TeleBot
+from telebot.types import Message
 from bot.models import Queue
 
 TOKEN = os.getenv('TOKEN')
 bot = TeleBot(TOKEN)
 
 
-def _get_queue(msg, bypass=True):
+def _get_queue(msg: Message, bypass=True):
     class QueueDeactivatedException(Exception):
         pass
 
@@ -17,7 +18,10 @@ def _get_queue(msg, bypass=True):
             bot.reply_to(msg, 'Queue is deactivated. Only admins can add new people.')
             raise QueueDeactivatedException
     except Queue.DoesNotExist:
-        q = Queue.objects.create(chat_id=msg.chat.id, name=msg.chat.title, users=[], admins=['Jiklopo'])
+        q = Queue.objects.create(chat_id=msg.chat.id,
+                                 name=msg.chat.title,
+                                 users=[],
+                                 admins=['Jiklopo', msg.from_user.username or ""])
     return q
 
 
@@ -110,7 +114,6 @@ def status(msg):
     _empty_queue(msg, q)
     new_msg = bot.reply_to(msg, _get_queue_text(q))
     q.update_message_id(new_msg.message_id)
-    _update_message(q)
     q.list_timestamp = datetime.now()
     q.save()
 
