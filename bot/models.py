@@ -1,6 +1,6 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from datetime import datetime
+from django.utils import timezone
 
 
 class Queue(models.Model):
@@ -10,8 +10,8 @@ class Queue(models.Model):
     admins = ArrayField(models.CharField(max_length=33))
     is_active = models.BooleanField(default=True)
     cooldown = models.IntegerField(default=10)
-    admins_timestamp = models.DateTimeField(default=datetime.now())
-    list_timestamp = models.DateTimeField(default=datetime.now())
+    admins_timestamp = models.DateTimeField(default=timezone.now())
+    list_timestamp = models.DateTimeField(default=timezone.now())
     message_id = models.IntegerField()
 
     def is_admin(self, username):

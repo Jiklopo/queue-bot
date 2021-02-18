@@ -150,7 +150,6 @@ def enter(msg):
     _update_message(q)
 
 
-
 @bot.message_handler(commands=['leave'])
 def leave(msg):
     _bad_chat(msg)
