@@ -78,9 +78,8 @@ def _check_timestamp(msg, timestamp, cooldown):
     class CooldownException(Exception):
         pass
 
-    timestamp = timestamp.replace(tzinfo=None)
     td = timezone.now() - timestamp
-    if td < timedelta(0, cooldown):
+    if td.total_seconds() < cooldown:
         bot.reply_to(msg,
                      f'Please respect others, do not mention people too often. You have to wait for {cooldown} seconds between commands.')
         raise CooldownException
